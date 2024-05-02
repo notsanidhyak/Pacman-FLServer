@@ -1,49 +1,44 @@
-const express = require('express');
-const fs = require('fs');
-const app = express();
-const port = 3000;
+from flask import Flask, request, jsonify
+import json
 
-// Load the current JSON data from a file
-function loadCurrentData() {
-    try {
-        const data = fs.readFileSync('current_data.json', 'utf8');
-        return JSON.parse(data);
-    } catch (err) {
-        return [];
-    }
-}
+app = Flask(__name__)
 
-// Store the current JSON data
-let currentData = loadCurrentData();
+# Load the current JSON data from a file
+def load_current_data():
+    try:
+        with open('current_data.json', 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return []
 
-console.log("Loaded data");
+# Store the current JSON data
+current_data = load_current_data()
 
-app.use(express.json());
+print("Loaded data")
 
-app.get('/hello', (req, res) => {
-    res.status(200).send('Hello, World!');
-});
+@app.route('/hello', methods=['GET'])
+def hello():
+    return 'Hello, World!', 200
 
-app.post('/fl', (req, res) => {
-    // Get the JSON data from the request
-    const newData = req.body;
+@app.route('/fl', methods=['POST'])
+def average_data():
+    global current_data
+    
+    # Get the JSON data from the request
+    new_data = request.get_json()
+    
+    # Check if the JSON data is in the correct format
+    if not isinstance(new_data, list):
+        return jsonify({'error': 'Invalid JSON format. Expected a list of values.'}), 400
+    
+    # Check if the length of both current_data and new_data is the same
+    if len(current_data) != len(new_data):
+        return jsonify({'error': 'Mismatch in data length. Please update data before averaging.'}), 400
+    
+    # Calculate the average of each value
+    averaged_data = [(current_data[i] + new_data[i]) / 2 for i in range(len(current_data))]
+    
+    return jsonify(averaged_data), 200
 
-    // Check if the JSON data is in the correct format
-    if (!Array.isArray(newData)) {
-        return res.status(400).json({ error: 'Invalid JSON format. Expected a list of values.' });
-    }
-
-    // Check if the length of both currentData and newData is the same
-    if (currentData.length !== newData.length) {
-        return res.status(400).json({ error: 'Mismatch in data length. Please update data before averaging.' });
-    }
-
-    // Calculate the average of each value
-    const averagedData = currentData.map((value, index) => (value + newData[index]) / 2);
-
-    res.status(200).json(averagedData);
-});
-
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
-});
+if __name__ == '__main__':
+    app.run(debug=True)
