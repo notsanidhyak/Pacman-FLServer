@@ -1,7 +1,8 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException
+from typing import List
 import json
 
-app = Flask(__name__)
+app = FastAPI()
 
 # Load the current JSON data from a file
 def load_current_data():
@@ -16,29 +17,23 @@ current_data = load_current_data()
 
 print("Loaded data")
 
-@app.route('/hello', methods=['GET'])
+@app.get("/hello")
 def hello():
-    return 'Hello, World!', 200
+    return 'Hello, World!'
 
-@app.route('/fl', methods=['POST'])
-def average_data():
+@app.post("/fl")
+def average_data(new_data: List[float]):
     global current_data
-    
-    # Get the JSON data from the request
-    new_data = request.get_json()
     
     # Check if the JSON data is in the correct format
     if not isinstance(new_data, list):
-        return jsonify({'error': 'Invalid JSON format. Expected a list of values.'}), 400
+        raise HTTPException(status_code=400, detail='Invalid JSON format. Expected a list of values.')
     
     # Check if the length of both current_data and new_data is the same
     if len(current_data) != len(new_data):
-        return jsonify({'error': 'Mismatch in data length. Please update data before averaging.'}), 400
+        raise HTTPException(status_code=400, detail='Mismatch in data length. Please update data before averaging.')
     
     # Calculate the average of each value
     averaged_data = [(current_data[i] + new_data[i]) / 2 for i in range(len(current_data))]
     
-    return jsonify(averaged_data), 200
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    return averaged_data
